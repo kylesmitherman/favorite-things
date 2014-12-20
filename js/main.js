@@ -18,4 +18,20 @@ $(document).ready(function() {
     $("#movies").addClass("panel-primary");
   });
 
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+    $("#item").val("");
+
+    var newHtml = "<li>" + item + "</li>";
+
+    $("#" + type + " .favorite-list").append(newHtml);
+  });
+
+  $(".favorite-list").click(function (event) {
+    var target = event.originalEvent.target
+    $(target).remove();
+  });
 });

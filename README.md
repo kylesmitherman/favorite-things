@@ -343,3 +343,198 @@ $(document).ready(function() {
 
 });
 ```
+
+## Adding Items
+
+This is pretty fancy but the content is still static. We need to be able to be
+able to add more items to the list. With a typical web application you would
+post a form or an AJAX request to a server which would ultimately store the
+content in a database. For our learning purposes today we are going to simply
+add more `<li>` items to the different lists in the DOM.
+
+To accomplish this we will use the form on the left hand side of the screen. If
+you type something in to the box and hit "Add" you will see the page
+refreshing. To make this refresh more apparent try clicking on one of the menu
+items to turn it blue then submit the form. You should see the panel revert
+back to grey because we are on a freshly loaded page. For our code we want to
+hook in to that form submission and use the data ourselves.
+
+We will need to do the following
+
+1. Select the form with jQuery
+2. Bind a callback to its `submit` event
+3. Use the form data to update the page
+
+To start, add this code below the menu code (but still inside the document's
+ready function):
+```javascript
+  $("form").submit(function () {
+    console.log("in the form's submit");
+  });
+```
+
+Save your changes and reload the page. Fill out the form and hit "Add". You
+might expect that you would see your logging in the console. However, you will
+not because the form's submission caused the browser to reload the page. Change
+our code like this:
+
+```javascript
+  $("form").submit(function (event) {
+    event.preventDefault();
+    console.log("in the form's submit");
+  });
+```
+
+All jQuery event callback functions are actually passed a variable that
+represents the event which triggered the call. jQuery events provide a method
+`preventDefault` which can be used to prevent the default action of the event.
+In this case the event is a form submission and we do **not** want the default
+behavior to continue so we have to disable it.
+
+## Getting Data
+
+Now that that's out of the way let's get on to doing something with it. We need
+to select the description of the new item and the type so we know which list to
+add it to. In jQuery you can get the value of form elements with `val`.
+
+```javascript
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+    console.log(item + " " + type);
+  });
+```
+
+As you change the drop down and text input and hit "Add" you should see the
+messages in the console changing.
+
+We now have a variable `type` which tells us which list to add to and a
+variable `item` that has the description. We should use an `if` statement to
+find the appropriate target list. Update the code as follows:
+
+```javascript
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+
+    var newHtml = "<li>" + item + "</li>";
+
+    $("#" + type + " .favorite-list").append(newHtml);
+  });
+```
+
+## Setting Data
+
+I don't know about you, but at this point I'm feeling pretty accomplished.
+There are, however, a few tweaks we could make to make this more user friendly.
+Have you noticed that when you submit the form the values stay in the input
+box? You probably don't really want to add the same thing multiple times in a
+row. We can help out by clearing the input box after we're done with it.
+
+In jQuery `val` will get the current value by default. If, however, you pass it
+something as an argument then `val` switches from a "getter" to a "setter" and
+will assign that value to the input. To clear an input we just have to pass the
+value `""`. So, somewhere after you fetch the current value, add this line
+
+```javascript
+$("#item").val("");
+```
+
+## Removing Elements
+
+What if we have added items to the list that we don't want? Our current design
+provides no way to delete them. Add the following code at the bottom of (but
+still inside) our document's ready function
+
+```javascript
+  $(".favorite-list").click(function (event) {
+    var target = event.originalEvent.target
+    $(target).remove();
+  });
+```
+
+There are three important concepts here that need to be addressed.
+
+First take note that we are binding to the click event of **any** element that
+has the class `favorite-list`. All three sections contain a `<ul>` that has
+this class.
+
+The second is **event bubbling**. We are binding the listener to the parent
+`<ul>` but what we care to remove is the child `<li>` that was actually
+clicked. To do this we access the event that we are passed (`event`) and pull
+out the original event (`event.originalEvent`) that triggered the action. This
+original event was first resolved on the `<li>` and then notified its parent
+element. After our callback is done the parent of this `<ul>` will be notified,
+and then it's parent, and then it's parent and so on until it reaches the top
+of the DOM.
+
+By binding this listener to all of the favorite lists and by listening for
+click events to bubble up from the actual list items we can keep our code
+simple and DRY.
+
+The third concept to note is the call `.remove()`. This method will remove the
+target element from the DOM entirely.
+
+## Further Study
+
+There are several more things we could do with this app. Ideas include
+
+* Update the item counts on the menu navigation whenever an item is added or removed
+* Hide all lists but the active list using `.hide()` and `.show()`. Experiment
+  with calling `.hide(500)` to see items ease out of visibility instead of
+  instantly disappearing.
+* Refactor the click highlight code to not be so repetitive
+* Add a confirmation dialog on the removal of favorite items
+* Add error checking for blank values when adding new items
+* Show a success notice when adding a new item
+* Add a button on the panel headings to remove all items on that list
+* Make entire new categories on demand (don't limit to 3)
+
+## Final Code
+
+For your reference, the final form of the JavaScript file as of the end of this
+lesson is as follows
+
+```javascript
+$(document).ready(function() {
+
+  $("#menu-animals").click(function() {
+    $("#animals").addClass("panel-primary");
+    $("#food").removeClass("panel-primary");
+    $("#movies").removeClass("panel-primary");
+  });
+
+  $("#menu-food").click(function() {
+    $("#animals").removeClass("panel-primary");
+    $("#food").addClass("panel-primary");
+    $("#movies").removeClass("panel-primary");
+  });
+
+  $("#menu-movies").click(function() {
+    $("#animals").removeClass("panel-primary");
+    $("#food").removeClass("panel-primary");
+    $("#movies").addClass("panel-primary");
+  });
+
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+    $("#item").val("");
+
+    var newHtml = "<li>" + item + "</li>";
+
+    $("#" + type + " .favorite-list").append(newHtml);
+  });
+
+  $(".favorite-list").click(function (event) {
+    var target = event.originalEvent.target
+    $(target).remove();
+  });
+});
+```
