@@ -234,3 +234,112 @@ To do this we need to do the following
 We should do this code INSIDE the callback being fired when the document is
 ready. The reason we wait for that callback is the DOM elements we want to bind
 click events to might not be ready yet.
+
+Change your `js/main.js` to look like this
+
+```javascript
+$(document).ready(function() {
+
+  $("#menu-animals").click(function() {
+    console.log("clicked animals");
+  });
+
+});
+```
+
+I prefer to take things one step at a time. With this we should be able to
+click on the "Animals" menu entry and see a console message. Once that is
+working go ahead and hook up the other two items
+
+```javascript
+$(document).ready(function() {
+
+  $("#menu-animals").click(function() {
+    console.log("clicked animals");
+  });
+
+  $("#menu-food").click(function() {
+    console.log("clicked food");
+  });
+
+  $("#menu-movies").click(function() {
+    console.log("clicked movies");
+  });
+
+});
+```
+
+Click back and forth between the menu items to confirm that this is working.
+
+## Adding Classes
+
+So far we have only used jQuery to select elements and register callbacks. The
+library also provides us with many helpful methods for manipulating the
+elements. One such method is `addClass`. Given a string class name, the method
+will ensure that the class is present on the element.
+
+Inside the callback for the Animals click let's select the Animals **panel**
+and give it the Bootstrap class `panel-primary`.
+
+```javascript
+$("#menu-animals").click(function() {
+  $("#animals").addClass("panel-primary");
+});
+```
+
+If we did everything correctly then clicking Animals on the left should make
+Animals on the right turn blue. Go ahead and repeat this in the other two
+functions.
+
+```javascript
+$(document).ready(function() {
+
+  $("#menu-animals").click(function() {
+    $("#animals").addClass("panel-primary");
+  });
+
+  $("#menu-food").click(function() {
+    $("#food").addClass("panel-primary");
+  });
+
+  $("#menu-movies").click(function() {
+    $("#movies").addClass("panel-primary");
+  });
+
+});
+```
+
+## Removing Classes
+
+So that's pretty neat, huh? We are now making changes that a user could
+actually notice. You will probably have noticed, however, that when you move on
+from Animals to Food to Movies each panel on the right stays blue. If we
+instead intended to have the blue highlight follow only the category we have
+selected we need to be removing it from the other panels as we go. To
+accomplish this we can use `removeClass`.
+
+Modify your code like this
+
+```javascript
+$(document).ready(function() {
+
+  $("#menu-animals").click(function() {
+    $("#animals").addClass("panel-primary");
+    $("#food").removeClass("panel-primary");
+    $("#movies").removeClass("panel-primary");
+  });
+
+  $("#menu-food").click(function() {
+    $("#animals").removeClass("panel-primary");
+    $("#food").addClass("panel-primary");
+    $("#movies").removeClass("panel-primary");
+  });
+
+  $("#menu-movies").click(function() {
+    $("#animals").removeClass("panel-primary");
+    $("#food").removeClass("panel-primary");
+    $("#movies").addClass("panel-primary");
+  });
+
+});
+```
