@@ -98,7 +98,11 @@ code down into pieces
    additional properties and methods. We call this returned object a "jQuery
    object." It represents the original thing passed in but has all of the
    jQuery behavior added. You can think of this as "jQuery-izing" a piece of
-   the page.
+   the page. You could also think of this function as a filter. Consider
+   filters on Instagram. You start with a regular photo, run it through a sepia
+   filter, and end up with a sepia photo. In our case we start with a
+   `document`, run it through `jQuery`, and end up with a jQuery object
+   representing that document.
 3. We call the `ready` method on that returned object and pass `ready` a new
    anonymous function as a **callback**. What we're doing here is registering
    that when the document is ready we want to run the code inside that
@@ -137,6 +141,11 @@ console.log("Document is ready for action!"); }` is not actually executed until
 a few milliseconds after it is registered; it is executed when the `document`
 is `ready`.
 
+To draw an analogy from the real world, consider a door greeter at Wal-Mart.
+When that door greeter is hired they are given instructions to greet customers
+when they walk in the door. Those instructions are like the anonymous function
+in our code. A customer entering the store is an **event**.
+
 There are several types of events in JavaScript that you can use to drive your
 code. Examples include
 
@@ -150,7 +159,7 @@ code. Examples include
 We will take advantage of these events later in this lesson by repeating the
 same basic formula we already have in our `js/main.js`
 
-1. "jQuery-ize" some part of the site
+1. "jQuery-ize" some part of the DOM
 2. Register an event listener
 3. Write code to happen in response to that event
 
@@ -411,8 +420,7 @@ As you change the drop down and text input and hit "Add" you should see the
 messages in the console changing.
 
 We now have a variable `type` which tells us which list to add to and a
-variable `item` that has the description. We should use an `if` statement to
-find the appropriate target list. Update the code as follows:
+variable `item` that has the description. Update the code as follows:
 
 ```javascript
   $("form").submit(function (event) {
@@ -426,6 +434,22 @@ find the appropriate target list. Update the code as follows:
     $("#" + type + " .favorite-list").append(newHtml);
   });
 ```
+
+There are four new things going on here
+
+1. We make a variable `newHtml` that represents the list item we will be
+   adding. If the value of `item` from our text input was `Puppies` then the
+   value of `newHtml` would be `<li>Puppies</li>`.
+2. We perform a similar concatenation when building the selector in the next
+   line. If the value of `type` is `animals` then we would be using the
+   selector `#animals .favorite-list`.
+3. That selector is the first time we have used nested selectors. In jQuery,
+   just like in CSS, you can select elements by their ancestry. So a selector
+   like `div p` would select all `p` elements that are children of a `div`
+   element. For our case we are selecting the `.favorite-list` element that is
+   a descendent of `#animals`
+4. We use the `.append` method to add our `newHtml` string to the end of the
+   `.favorite-list`
 
 ## Setting Data
 
@@ -472,6 +496,14 @@ element. After our callback is done the parent of this `<ul>` will be notified,
 and then it's parent, and then it's parent and so on until it reaches the top
 of the DOM.
 
+To get a better picture of event bubbling change the selector in our new code
+to bind to `body` instead of `.favorite-list`. Save your changes and reload.
+Next click on any element of the page. When you click it the click event will
+bubble all the way up the DOM to the `<body>` tag which has our event listener
+to remove the originally clicked item.
+
+Revert your change so the newest code is bound to `.favorite-list`.
+
 By binding this listener to all of the favorite lists and by listening for
 click events to bubble up from the actual list items we can keep our code
 simple and DRY.
@@ -479,17 +511,187 @@ simple and DRY.
 The third concept to note is the call `.remove()`. This method will remove the
 target element from the DOM entirely.
 
+## Updating Badge Counts
+
+Have you noticed the badge counts on the left are not being updated as we add
+or remove items? Add this code to the bottom of your form submit callback
+
+```javascript
+var count = $("#menu-" + type + " .badge").text();
+count = parseInt(count) + 1
+$("#menu-" + type + " .badge").text(count);
+```
+
+What we're doing here is 
+1. Selecting the `.badge` element inside the `#menu-animals` element (for
+   example) and getting its contents with `.text()`.
+2. We ensure the `count` variable is an int by passing it through `parseInt`
+3. Add 1 to `count` and assign that value back to the variable
+4. Select the `.badge` element again and replace its contents by calling
+   `.text(count)`
+
+Save and reload the page. Now when you add a new item the count increases!
+Let's now work on decreasing the count as items are removed. Replace the item
+removal code with the following:
+
+```javascript
+  $(".favorite-list").click(function (event) {
+    var target = event.originalEvent.target
+
+    var type = $(target).closest(".panel").attr("id")
+
+    var count = $("#menu-" + type + " .badge").text();
+    count = parseInt(count) - 1
+    $("#menu-" + type + " .badge").text(count);
+
+    $(target).remove();
+  });
+```
+
+When we were adding items we knew exactly which badge to increase because the
+form dropdown required the user to select the list. However our item removal
+code is generic and handles removing items from any list. We need to know which
+list is being shrank so we can decrease the appropriate badge. Take a look at
+the DOM, specifically at this section
+
+```html
+<!-- Panel section for Movies -->
+<div class="panel panel-default" id="movies">
+  <div class="panel-heading">
+    <h3 class="panel-title">Movies</h3>
+  </div>
+  <div class="panel-content">
+    <ul class="favorite-list">
+      <li>Hackers</li>
+      <li>The Matrix</li>
+    </ul>
+  </div>
+</div>
+```
+
+Starting at the `<li>` for "Hackers" we can work our way back up the DOM until
+we find something that can authoritatively identify the list we're using. Three
+levels up the DOM we get to `<div class="panel panel-default" id="movies">`.
+This element's `id` tells us that we are removing from the movies list. To
+gather that with jQuery we added this line
+
+```javascript
+var type = $(target).closest(".panel").attr("id")
+```
+
+This code does the following
+
+1. "jQuery-ize" the variable `target` which is the `<li>` that was clicked.
+2. Use the `closest` method to look back up the DOM for an element that matches
+   the `.panel` selector
+3. Having found that element, use the `attr` method to get the value of its id
+
+After we have identified the type of item we just reuse the code to change the
+badge count but this time we subtract 1.
+
+Go ahead and confirm in your browser that this is working.
+
+## Refactor
+
+Our solution to increase / decrease the badge counts breaks the DRY rule. We
+copied the badge increase code and pasted it into the removal code. Any time
+you feel inclined to copy and paste some code it is probably a good idea to
+refactor that code out into a reusable function.
+
+Change your `js/main.js` file to be similar to this
+
+```javascript
+var changeBadgeCount = function(type, value) {
+    var count = $("#menu-" + type + " .badge").text();
+    count = parseInt(count) + value;
+    $("#menu-" + type + " .badge").text(count);
+};
+
+$(document).ready(function() {
+  // Panel highlighting snipped just for this example
+
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+    $("#item").val("");
+
+    var newHtml = "<li>" + item + "</li>";
+
+    $("#" + type + " .favorite-list").append(newHtml);
+
+    changeBadgeCount(type, 1);
+  });
+
+  $(".favorite-list").click(function (event) {
+    var target = event.originalEvent.target
+
+    var type = $(target).closest(".panel").attr("id")
+
+    $(target).remove();
+
+    changeBadgeCount(type, -1);
+  });
+});
+```
+
+Notice that I defined the function `changeBadgeCount` outside of the document's
+ready function. I then replaced the duplicated code from the form submit and
+the item click callbacks with calls to this new function.
+
+## Error Handling
+Have you noticed what happens if you click "Add" twice in a row on our form? It
+will add your new item then also add a blank item. We should add error checking
+to our form. Change the form submit code to this:
+
+```javascript
+  $("form").submit(function (event) {
+    event.preventDefault();
+
+    var type = $("#type").val();
+    var item = $("#item").val();
+
+    if (item === "") {
+      $("#item-error").show();
+      return;
+    }
+
+    $("#item").val("");
+
+    var newHtml = "<li>" + item + "</li>";
+
+    $("#" + type + " .favorite-list").append(newHtml);
+
+    changeBadgeCount(type, 1);
+  });
+```
+
+The validation comes from the `if` block. Our markup already includes an alert
+styled `div` that has the id "item-error". This div has inline styles forcing
+it to be hidden. We select it with jQuery and call the method `show()` which
+overrides the inline styles and forces it to be visible.
+
+This is good, but now even after our user corrects their mistake we are still
+showing the error. After the `if` block add this line
+
+```javascript
+$("#item-error").hide();
+```
+
+Now any time the user passes validation we will use jQuery's `hide` method to
+ensure the error is hidden.
+
 ## Further Study
 
 There are several more things we could do with this app. Ideas include
 
-* Update the item counts on the menu navigation whenever an item is added or removed
 * Hide all lists but the active list using `.hide()` and `.show()`. Experiment
   with calling `.hide(500)` to see items ease out of visibility instead of
   instantly disappearing.
 * Refactor the click highlight code to not be so repetitive
 * Add a confirmation dialog on the removal of favorite items
-* Add error checking for blank values when adding new items
+* Make it more obvious that you can remove items from the list
 * Show a success notice when adding a new item
 * Add a button on the panel headings to remove all items on that list
 * Make entire new categories on demand (don't limit to 3)
@@ -500,6 +702,12 @@ For your reference, the final form of the JavaScript file as of the end of this
 lesson is as follows
 
 ```javascript
+var changeBadgeCount = function(type, value) {
+    var count = $("#menu-" + type + " .badge").text();
+    count = parseInt(count) + value;
+    $("#menu-" + type + " .badge").text(count);
+};
+
 $(document).ready(function() {
 
   $("#menu-animals").click(function() {
@@ -525,15 +733,29 @@ $(document).ready(function() {
 
     var type = $("#type").val();
     var item = $("#item").val();
+
+    if (item === "") {
+      $("#item-error").show();
+      return;
+    }
+    $("#item-error").hide();
+
     $("#item").val("");
 
     var newHtml = "<li>" + item + "</li>";
 
     $("#" + type + " .favorite-list").append(newHtml);
+
+    changeBadgeCount(type, 1);
   });
 
   $(".favorite-list").click(function (event) {
     var target = event.originalEvent.target
+
+    var type = $(target).closest(".panel").attr("id")
+
+    changeBadgeCount(type, -1);
+
     $(target).remove();
   });
 });
